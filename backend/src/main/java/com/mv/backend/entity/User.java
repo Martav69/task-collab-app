@@ -2,8 +2,6 @@ package com.mv.backend.entity;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,7 +25,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @JsonIgnore // masque le mdp dans les réponse
+    // @JsonIgnore // masque le mdp dans les réponse
     @Column(nullable = false)
     private String password; // Le hash du mot de passe
 

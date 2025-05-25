@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mv.backend.dto.BoardDTO;
 import com.mv.backend.entity.Board;
 import com.mv.backend.exception.NotFoundException;
 import com.mv.backend.repository.BoardRepository;
@@ -28,17 +29,23 @@ public class BoardController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Board>> getAllBoards() {
+    public ResponseEntity<List<BoardDTO>> getAllBoards() {
         List<Board> boards = boardRepository.findAll();
-        return ResponseEntity.ok(boards);
+        List<BoardDTO> dtos = boards.stream()
+            .map(board -> new BoardDTO(board.getId(), board.getName(), board.getOwner().getId()))
+            .toList();
+        return ResponseEntity.ok(dtos);
     }
 
+
     @GetMapping("/{id}")
-    public ResponseEntity<Board> getBoardById(@PathVariable Long id) {
+    public ResponseEntity<BoardDTO> getBoardById(@PathVariable Long id) {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Board not found with id " + id));
-        return ResponseEntity.ok(board);
+        BoardDTO dto = new BoardDTO(board.getId(), board.getName(), board.getOwner().getId());
+        return ResponseEntity.ok(dto);
     }
+
 
     @PostMapping
     public ResponseEntity<Board> createBoard(@RequestBody Board board) {

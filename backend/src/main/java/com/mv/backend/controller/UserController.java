@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mv.backend.dto.UserDTO;
 import com.mv.backend.entity.User;
 import com.mv.backend.exception.NotFoundException;
 import com.mv.backend.repository.UserRepository;
@@ -29,18 +30,24 @@ public class UserController {
 
     // GET /api/users
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<User> users = userRepository.findAll();
-        return ResponseEntity.ok(users); // 200 OK
+        List<UserDTO> dtos = users.stream()
+            .map(user -> new UserDTO(user.getId(), user.getUsername(), user.getEmail()))
+            .toList();
+        return ResponseEntity.ok(dtos);
     }
+
 
     // GET /api/users/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("User not found with id " + id));
-        return ResponseEntity.ok(user); // 200 OK
+        UserDTO dto = new UserDTO(user.getId(), user.getUsername(), user.getEmail());
+        return ResponseEntity.ok(dto);
     }
+
 
     // POST /api/users
     @PostMapping

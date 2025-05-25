@@ -1,6 +1,7 @@
 package com.mv.backend.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mv.backend.dto.ListColumnDTO;
+import com.mv.backend.dto.TaskDTO;
 import com.mv.backend.entity.ListColumn;
+import com.mv.backend.entity.Task;
 import com.mv.backend.exception.NotFoundException;
 import com.mv.backend.repository.ListColumnRepository;
 
@@ -27,39 +31,53 @@ public class ListColumnController {
         this.listColumnRepository = listColumnRepository;
     }
 
+    // GET ALL
     @GetMapping
-    public ResponseEntity<List<ListColumn>> getAllListColumns() {
-        return ResponseEntity.ok(listColumnRepository.findAll());
+    public ResponseEntity<List<ListColumnDTO>> getAllListColumns() {
+        List<ListColumn> columns = listColumnRepository.findAll();
+        List<ListColumnDTO> dtos = columns.stream()
+            .map(this::toDTO)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
+    // GET BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<ListColumn> getListColumnById(@PathVariable Long id) {
-        ListColumn listColumn = listColumnRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("ListColumn not found with id " + id));
-        return ResponseEntity.ok(listColumn);
+    public ResponseEntity<ListColumnDTO> getListColumnById(@PathVariable Long id) {
+        ListColumn col = listColumnRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("ListColumn not found with id " + id));
+        return ResponseEntity.ok(toDTO(col));
     }
 
+    // GET BY BOARD
     @GetMapping("/board/{boardId}")
-    public ResponseEntity<List<ListColumn>> getListColumnsByBoard(@PathVariable Long boardId) {
-        return ResponseEntity.ok(listColumnRepository.findByBoardId(boardId));
+    public ResponseEntity<List<ListColumnDTO>> getListColumnsByBoard(@PathVariable Long boardId) {
+        List<ListColumn> columns = listColumnRepository.findByBoardId(boardId);
+        List<ListColumnDTO> dtos = columns.stream()
+            .map(this::toDTO)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
+    // POST
     @PostMapping
-    public ResponseEntity<ListColumn> createListColumn(@RequestBody ListColumn listColumn) {
+    public ResponseEntity<ListColumnDTO> createListColumn(@RequestBody ListColumn listColumn) {
         ListColumn saved = listColumnRepository.save(listColumn);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(saved));
     }
 
+    // PUT
     @PutMapping("/{id}")
-    public ResponseEntity<ListColumn> updateListColumn(@PathVariable Long id, @RequestBody ListColumn details) {
+    public ResponseEntity<ListColumnDTO> updateListColumn(@PathVariable Long id, @RequestBody ListColumn details) {
         ListColumn listColumn = listColumnRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("ListColumn not found with id " + id));
+            .orElseThrow(() -> new NotFoundException("ListColumn not found with id " + id));
         listColumn.setName(details.getName());
         listColumn.setBoard(details.getBoard());
         ListColumn updated = listColumnRepository.save(listColumn);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(toDTO(updated));
     }
 
+    // DELETE
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteListColumn(@PathVariable Long id) {
         if (!listColumnRepository.existsById(id)) {
@@ -67,5 +85,28 @@ public class ListColumnController {
         }
         listColumnRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- MAPPING ENTITE -> DTO ---
+    private ListColumnDTO toDTO(ListColumn entity) {
+        return new ListColumnDTO(
+            entity.getId(),
+            entity.getName(),
+            entity.getBoard() != null ? entity.getBoard().getId() : null,
+            entity.getBoard() != null ? entity.getBoard().getName() : null,
+            entity.getTasks() != null
+                ? entity.getTasks().stream()
+                    .map(this::toTaskDTO)
+                    .collect(Collectors.toList())
+                : null
+        );
+    }
+
+    private TaskDTO toTaskDTO(Task t) {
+        return new TaskDTO(
+            t.getId(),
+            t.getTitle(),
+            t.getDescription()
+        );
     }
 }
