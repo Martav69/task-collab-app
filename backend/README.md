@@ -72,7 +72,7 @@ CORS activé (pour le front React/JS)
 
 Swagger ouvert uniquement en dev
 
-#### 📦 Technos utilisées
+## 📦 Technos utilisées
 - Java 17+
 - Spring Boot 3+
   Spring Security
@@ -82,3 +82,33 @@ Swagger ouvert uniquement en dev
 - MySQL
 - Swagger/OpenAPI (springdoc-openapi)
 - Maven
+
+## 📄 Structure du code
+
+```bash
+backend/
+│
+├── src/main/java/com/mv/backend/
+│   ├── controller/      # Contrôleurs REST
+│   ├── dto/             # DTO exposés au front
+│   ├── entity/          # Entités JPA (modèles BDD)
+│   ├── repository/      # Accès aux données (DAO)
+│   ├── security/        # Auth, JWT, gestion utilisateur sécurisé
+│   ├── config/          # Configurations diverses (CORS, Security, etc.)
+│   └── exception/       # Exceptions personnalisées
+│
+├── src/main/resources/
+│   └── application.properties
+├── uploads/             # Stockage local des images
+├── pom.xml
+└── ...
+
+```
+
+## 👨‍💻 Développement & contribution
+#### Réalisé par Martav 
+
+> Issue, questions, suggestions : ouvrez une Issue GitHub ou contactez-moi
+
+### 🌟 Licence
+Projet open-source, servez-vous !
