@@ -1,0 +1,118 @@
+.root {
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #181c3a 0%, #4e206f 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.heroImage {
+  width: 280px;
+  max-width: 70vw;
+  margin: 0 auto 18px auto;
+  display: block;
+  filter: drop-shadow(0 10px 40px #6e8efb44);
+  z-index: 2;
+  position: relative;
+}
+
+.card {
+  background: rgba(24, 28, 58, 0.85);
+  border-radius: 28px;
+  box-shadow: 0 8px 38px #301f4a44;
+  padding: 42px 34px 34px 34px;
+  max-width: 430px;
+  width: 100%;
+  margin: 0 auto 28px auto;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(7px);
+}
+
+.logo {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 24px #ab83f955);
+}
+
+.title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10px;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 16px #2f1d3b88;
+}
+
+.slogan {
+  color: #dad5fc;
+  font-weight: 500;
+  margin-bottom: 22px;
+  font-size: 1.18rem;
+  letter-spacing: 0.03em;
+}
+
+.buttonGroup {
+  margin-top: 28px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 26px 18px;
+  margin: 32px 0 16px 0;
+  font-size: 1.07rem;
+  z-index: 2;
+  position: relative;
+}
+.features div {
+  background: rgba(40, 28, 77, 0.9);
+  color: #faf8ff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px #af88ec21;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  min-width: 200px;
+  transition: transform 0.22s;
+  cursor: default;
+  border: 1.5px solid #5231b155;
+}
+.features div:hover { transform: translateY(-4px) scale(1.045);}
+.features svg { font-size: 1.4rem; }
+
+.footer {
+  text-align: center;
+  padding: 16px 0 10px 0;
+  color: #b8b4d7;
+  font-size: 1rem;
+  opacity: 0.88;
+  z-index: 3;
+  position: relative;
+}
+
+.footer a {
+  color: #f2eaff;
+  margin-left: 16px;
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .card { padding: 22px 7vw 26px 7vw; }
+  .title { font-size: 1.37rem;}
+  .features div { min-width: 144px; font-size: 0.99rem;}
+  .heroImage { width: 80vw;}
+}
