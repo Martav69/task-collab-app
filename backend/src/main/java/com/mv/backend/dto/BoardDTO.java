@@ -4,13 +4,16 @@ public class BoardDTO {
     private Long id;
     private String name;
     private Long ownerId;
+    private String ownerUsername;
 
     public BoardDTO() {}
 
-    public BoardDTO(Long id, String name, Long ownerId) {
+    public BoardDTO(Long id, String name, Long ownerId, String ownerUsername) {
         this.id = id;
         this.name = name;
         this.ownerId = ownerId;
+        this.ownerUsername = ownerUsername;
+        
     }
 
     // Getters & Setters
@@ -22,4 +25,7 @@ public class BoardDTO {
 
     public Long getOwnerId() { return ownerId; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
+
+    public String getOwnerUsername() { return ownerUsername; }
+    public void setOwnerUsername(String ownerUsername) { this.ownerUsername = ownerUsername; }
 }

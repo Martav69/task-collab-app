@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +28,16 @@ public class UserController {
     public UserController(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
+    @GetMapping("/me")
+    public ResponseEntity<UserDTO> getCurrentUser(Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+        // On renvoie le DTO (pour ne pas leak le hash du mdp, etc)
+        UserDTO dto = new UserDTO(user.getId(), user.getUsername(), user.getEmail());
+        return ResponseEntity.ok(dto);
+    }
+
 
     // GET /api/users
     @GetMapping
@@ -52,7 +63,7 @@ public class UserController {
     // POST /api/users
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
-        // Ici on pourrait rajouter des validation (email unique etc )
+
         User savedUser = userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser); // 201 Created
     }

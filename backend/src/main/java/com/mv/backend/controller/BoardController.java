@@ -32,7 +32,7 @@ public class BoardController {
     public ResponseEntity<List<BoardDTO>> getAllBoards() {
         List<Board> boards = boardRepository.findAll();
         List<BoardDTO> dtos = boards.stream()
-            .map(board -> new BoardDTO(board.getId(), board.getName(), board.getOwner().getId()))
+            .map(board -> new BoardDTO(board.getId(), board.getName(), board.getOwner().getId(), board.getOwner().getUsername()))
             .toList();
         return ResponseEntity.ok(dtos);
     }
@@ -42,7 +42,7 @@ public class BoardController {
     public ResponseEntity<BoardDTO> getBoardById(@PathVariable Long id) {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Board not found with id " + id));
-        BoardDTO dto = new BoardDTO(board.getId(), board.getName(), board.getOwner().getId());
+        BoardDTO dto = new BoardDTO(board.getId(), board.getName(), board.getOwner().getId(), board.getOwner().getUsername());
         return ResponseEntity.ok(dto);
     }
 
