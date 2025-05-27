@@ -4,6 +4,7 @@ import {
   Box, Typography, CircularProgress, Button, Paper, Grid, TextField, Dialog, DialogActions, DialogContent
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import { getToken } from "../services/auth";
 import { AuthContext } from "../context/AuthContext";
 import { uploadTaskImage } from "../services/taskImage";
@@ -209,8 +210,10 @@ const BoardDetailsPage = () => {
                             sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500, minWidth: 0 }}
                             disabled={!!uploadingTaskId}
                             component="span"
-                        >
-                            {uploadingTaskId === task.id ? "Envoi..." : "Image"}
+                            >
+                            {uploadingTaskId === task.id
+                                ? "Envoi..."
+                                : <PhotoCameraIcon sx={{ fontSize: 21, color: "#b983fe" }} />}
                         </Button>
                         </label>
                     </Paper>
