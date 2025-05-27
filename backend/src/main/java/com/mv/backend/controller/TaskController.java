@@ -117,11 +117,19 @@ public class TaskController {
     }
 
     // --- MAPPING ENTITE -> DTO ---
-    private TaskDTO toDTO(Task entity) {
-        return new TaskDTO(
-            entity.getId(),
-            entity.getTitle(),
-            entity.getDescription()
-        );
+        private TaskDTO toDTO(Task task) {
+    // Récupère les images liées à la tâche (prends la première si plusieurs)
+    List<TaskImage> images = taskImageRepository.findByTaskId(task.getId());
+    String imageUrl = null;
+    if (!images.isEmpty()) {
+        imageUrl = images.get(0).getImageUrl();
     }
+    // Map les champs de base + imageUrl
+    return new TaskDTO(
+        task.getId(),
+        task.getTitle(),
+        task.getDescription(),
+        imageUrl
+    );
+}
 }

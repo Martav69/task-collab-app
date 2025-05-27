@@ -8,7 +8,7 @@ export async function login(email, password) {
     email,
     password,
   });
-  return response.data.token; // (ou adapte selon le backend)
+  return response.data.token; 
 }
 
 // Inscription utilisateur
@@ -18,7 +18,7 @@ export async function register({ username, email, password }) {
     email,
     password,
   });
-  return response.data; // Message de succès ou gestion d'erreur
+  return response.data; 
 }
 
 // plus tard) Déconnexion

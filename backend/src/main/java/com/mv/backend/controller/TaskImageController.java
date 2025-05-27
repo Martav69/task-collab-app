@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.mv.backend.dto.TaskImageDTO;
 import com.mv.backend.entity.Task;
 import com.mv.backend.entity.TaskImage;
 import com.mv.backend.repository.TaskImageRepository;
@@ -90,7 +91,13 @@ public class TaskImageController {
             taskImage.setImageUrl("/api/task-images/file/" + filename);
             taskImageRepository.save(taskImage);
 
-            return ResponseEntity.ok(taskImage);
+            TaskImageDTO dto = new TaskImageDTO(
+                taskImage.getId(),
+                taskImage.getImageUrl(),
+                taskImage.getTask().getId()
+            );
+
+            return ResponseEntity.ok(dto);
 
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to save image");

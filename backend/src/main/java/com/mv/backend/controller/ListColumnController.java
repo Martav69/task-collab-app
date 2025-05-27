@@ -106,7 +106,8 @@ public class ListColumnController {
         return new TaskDTO(
             t.getId(),
             t.getTitle(),
-            t.getDescription()
+            t.getDescription(),
+            null
         );
     }
 }

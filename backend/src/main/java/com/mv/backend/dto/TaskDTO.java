@@ -4,14 +4,15 @@ public class TaskDTO {
     private Long id;
     private String title;
     private String description;
-    // Bonus possible : date, statut, etc.
+    private String imageUrl;
 
     public TaskDTO() {}
 
-    public TaskDTO(Long id, String title, String description) {
+    public TaskDTO(Long id, String title, String description, String imageUrl) {
         this.id = id;
         this.title = title;
         this.description = description;
+        this.imageUrl = imageUrl;
     }
 
     // Getters & Setters
@@ -23,4 +24,7 @@ public class TaskDTO {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getImageUrl(){ return imageUrl;}
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl;}
 }
