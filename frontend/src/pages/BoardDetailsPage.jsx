@@ -13,14 +13,11 @@ import { deleteTask } from "../services/task";
 import { deleteListColumn } from "../services/listColumn";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
-
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const BoardDetailsPage = () => {
-  const { id } = useParams(); // L’id du board dans l’URL
+  const { id } = useParams();
   const navigate = useNavigate();
-
-  
 
   // State
   const [board, setBoard] = useState(null);
@@ -34,22 +31,21 @@ const BoardDetailsPage = () => {
   const [uploadingTaskId, setUploadingTaskId] = useState(null);
 
   const handleImageUpload = async (taskId, file) => {
-  setUploadingTaskId(taskId);
-  try {
-    await uploadTaskImage(taskId, file);
-    setRefresh(r => !r); // Pour recharger les tâches avec image
-  } catch {
-    alert("Erreur lors de l’upload de l’image.");
-  }
-  setUploadingTaskId(null);
-};
+    setUploadingTaskId(taskId);
+    try {
+      await uploadTaskImage(taskId, file);
+      setRefresh(r => !r);
+    } catch {
+      alert("Erreur lors de l’upload de l’image.");
+    }
+    setUploadingTaskId(null);
+  };
 
   // Charge board + colonnes
   useEffect(() => {
     const fetchBoardAndColumns = async () => {
       setLoading(true);
       try {
-        // 1. Charge le board
         const boardRes = await fetch(`${API_URL}/api/boards/${id}`, {
           headers: { Authorization: "Bearer " + getToken() }
         });
@@ -57,23 +53,18 @@ const BoardDetailsPage = () => {
         const boardData = await boardRes.json();
         setBoard(boardData);
 
-        // 2. Charge les colonnes (et leurs tâches)
         const columnsRes = await fetch(`${API_URL}/api/list-columns/board/${id}`, {
           headers: { Authorization: "Bearer " + getToken() }
         });
         const columnsData = await columnsRes.json();
 
-        // On peut aussi ajouter les tâches dans chaque colonne
-        // (Ou alors, endpoint qui ramène tout, à adapter)
         for (const col of columnsData) {
-            const tasksRes = await fetch(`${API_URL}/api/tasks/list-column/${col.id}`, {
-                headers: { Authorization: "Bearer " + getToken() }
-                });
-                let tasks = await tasksRes.json();
-
-            col.tasks = tasks;
-            }
-
+          const tasksRes = await fetch(`${API_URL}/api/tasks/list-column/${col.id}`, {
+            headers: { Authorization: "Bearer " + getToken() }
+          });
+          let tasks = await tasksRes.json();
+          col.tasks = tasks;
+        }
         setColumns(columnsData);
 
       } catch (e) {
@@ -82,10 +73,8 @@ const BoardDetailsPage = () => {
       setLoading(false);
     };
     fetchBoardAndColumns();
-    // Refresh si ajout
   }, [id, refresh, navigate]);
 
-  // Ajouter une colonne
   const handleAddColumn = async () => {
     if (!newColumnName.trim()) return;
     await fetch(`${API_URL}/api/list-columns`, {
@@ -101,7 +90,6 @@ const BoardDetailsPage = () => {
     setRefresh(r => !r);
   };
 
-  // Ajouter une tâche dans une colonne
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
     await fetch(`${API_URL}/api/tasks`, {
@@ -120,72 +108,60 @@ const BoardDetailsPage = () => {
     setTaskDialog({ open: false, colId: null });
     setRefresh(r => !r);
   };
-  // Delete task 
-  const handleDeleteTask = async (taskId) => {
-        if (!window.confirm("Supprimer cette tâche ?")) return;
-        try {
-            await deleteTask(taskId);
-            setRefresh(r => !r); // recharge les tâches
-        } catch {
-            alert("Erreur lors de la suppression.");
-        }
-    };
 
-    // delete colonne
-        const handleDeleteColumn = async (colId) => {
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm("Supprimer cette tâche ?")) return;
+    try {
+      await deleteTask(taskId);
+      setRefresh(r => !r);
+    } catch {
+      alert("Erreur lors de la suppression.");
+    }
+  };
+
+  const handleDeleteColumn = async (colId) => {
     if (!window.confirm("Supprimer cette colonne et toutes ses tâches ?")) return;
     try {
-        await deleteListColumn(colId);
-        setRefresh(r => !r); // recharge les colonnes/tâches
+      await deleteListColumn(colId);
+      setRefresh(r => !r);
     } catch {
-        alert("Erreur lors de la suppression de la colonne.");
+      alert("Erreur lors de la suppression de la colonne.");
     }
-    };
+  };
 
-    // Drag & drop 
-    const handleDragEnd = async (result) => {
-        const { destination, source, draggableId } = result;
+  const handleDragEnd = async (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination ||
+      (destination.droppableId === source.droppableId &&
+        destination.index === source.index)) {
+      return;
+    }
+    const sourceColIdx = columns.findIndex(c => c.id.toString() === source.droppableId);
+    const destColIdx = columns.findIndex(c => c.id.toString() === destination.droppableId);
 
-        // Si l’utilisateur drop hors zone ou au même endroit, rien à faire
-        if (!destination ||
-            (destination.droppableId === source.droppableId &&
-            destination.index === source.index)) {
-            return;
-        }
+    if (sourceColIdx === -1 || destColIdx === -1) return;
 
-        // Trouve la colonne source et destination
-        const sourceColIdx = columns.findIndex(c => c.id.toString() === source.droppableId);
-        const destColIdx = columns.findIndex(c => c.id.toString() === destination.droppableId);
+    const newColumns = [...columns];
+    const [movedTask] = newColumns[sourceColIdx].tasks.splice(source.index, 1);
+    newColumns[destColIdx].tasks.splice(destination.index, 0, movedTask);
+    setColumns(newColumns);
 
-        if (sourceColIdx === -1 || destColIdx === -1) return;
-
-        // Copie les colonnes (immutabilité)
-        const newColumns = [...columns];
-        const [movedTask] = newColumns[sourceColIdx].tasks.splice(source.index, 1);
-        newColumns[destColIdx].tasks.splice(destination.index, 0, movedTask);
-
-        // Met à jour visuellement
-        setColumns(newColumns);
-
-        // MAJ back : PATCH ou PUT la task avec son nouveau listColumnId
-        try {
-            await fetch(`${API_URL}/api/tasks/${movedTask.id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + getToken(),
-            },
-            body: JSON.stringify({
-                ...movedTask,
-                listColumn: { id: columns[destColIdx].id }
-            }),
-            });
-        } catch {
-            // (optionnel: tu peux rollback si erreur)
-            alert("Erreur lors du déplacement !");
-        }
-        };
-
+    try {
+      await fetch(`${API_URL}/api/tasks/${movedTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + getToken(),
+        },
+        body: JSON.stringify({
+          ...movedTask,
+          listColumn: { id: columns[destColIdx].id }
+        }),
+      });
+    } catch {
+      alert("Erreur lors du déplacement !");
+    }
+  };
 
   if (loading) return (
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #1f2235 0%, #2a2546 100%)" }}>
@@ -193,7 +169,7 @@ const BoardDetailsPage = () => {
     </Box>
   );
 
-  if (!board) return null; // Sécurité
+  if (!board) return null;
 
   return (
     <Box sx={{
@@ -217,69 +193,81 @@ const BoardDetailsPage = () => {
         Nouvelle colonne
       </Button>
 
-    <DragDropContext onDragEnd={handleDragEnd}>
+      <DragDropContext onDragEnd={handleDragEnd}>
         <Grid container spacing={2} sx={{ flexWrap: "nowrap", overflowX: "auto", pb: 6 }}>
-            {columns.map((col, colIdx) => (
+          {columns.map((col, colIdx) => (
             <Grid item key={col.id} sx={{ minWidth: 300, maxWidth: 320 }}>
-                <Paper sx={{
+              {/* ===== COLONNE AMELIOREE ===== */}
+              <Paper sx={{
                 background: "#23233a",
                 borderRadius: 5,
                 p: 2,
                 minHeight: 420,
                 boxShadow: "0 2px 16px #b983fe22",
                 display: "flex",
-                flexDirection: "column"
-                }}>
-                <Typography variant="h6" fontWeight={700} color="#b983fe" gutterBottom>
+                flexDirection: "column",
+                position: "relative",
+              }}>
+                {/* Header de colonne avec delete en haut à droite */}
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                  <Typography
+                    variant="h6"
+                    fontWeight={700}
+                    color="#b983fe"
+                    sx={{ flex: 1, textAlign: "left", pr: 3, wordBreak: "break-all" }}
+                    gutterBottom
+                  >
                     {col.name}
-                    <DeleteIcon
-                    sx={{ ml: 1, cursor: "pointer", fontSize: 20, color: "#e57373" }}
+                  </Typography>
+                  <Button
                     onClick={() => handleDeleteColumn(col.id)}
-                    titleAccess="Supprimer la colonne"
-                    />
-                </Typography>
+                    sx={{
+                      minWidth: 0, p: 1, borderRadius: "50%",
+                      color: "#e57373",
+                      background: "transparent",
+                      '&:hover': { background: "#31172b22" }
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </Button>
+                </Box>
 
                 <Droppable droppableId={col.id.toString()} type="task">
-                    {(provided) => (
+                  {(provided) => (
                     <Box
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        sx={{ flex: 1, minHeight: 40 }}
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      sx={{ flex: 1, minHeight: 40 }}
                     >
-                        {col.tasks && col.tasks.length > 0 ? (
+                      {col.tasks && col.tasks.length > 0 ? (
                         col.tasks.map((task, taskIdx) => (
-                            <Draggable key={task.id} draggableId={task.id.toString()} index={taskIdx}>
+                          <Draggable key={task.id} draggableId={task.id.toString()} index={taskIdx}>
                             {(provided, snapshot) => (
-                                <Paper
+                              <Paper
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
                                 sx={{
-                                    p: 1.2, mb: 1.4, borderRadius: 3, background: "#342b54", color: "#fff",
-                                    boxShadow: snapshot.isDragging
+                                  p: 1.5, mb: 2, borderRadius: 3, background: "#342b54", color: "#fff",
+                                  boxShadow: snapshot.isDragging
                                     ? "0 6px 24px #b983fe77"
                                     : "0 1px 6px #b983fe14",
-                                    opacity: snapshot.isDragging ? 0.92 : 1,
-                                    transition: "box-shadow .2s"
+                                  opacity: snapshot.isDragging ? 0.92 : 1,
+                                  transition: "box-shadow .2s",
+                                  position: "relative",
+                                  "&:hover .task-actions": { opacity: 1, pointerEvents: "auto" }, // Affiche actions au hover
                                 }}
-                                >
+                              >
                                 <Typography fontWeight={600}>{task.title}</Typography>
                                 {task.description && (
-                                    <Typography fontSize={14} color="#aaa">{task.description}</Typography>
+                                  <Typography fontSize={14} color="#aaa">{task.description}</Typography>
                                 )}
-                                <Typography fontWeight={600} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <DeleteIcon
-                                    sx={{ ml: 1, cursor: "pointer", fontSize: 21, color: "#e57373" }}
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    />
-                                </Typography>
-                                {/* Affiche l’image si présente */}
-                                {task.imageUrl && task.imageUrl.length > 0 && (
-                                    <Box sx={{ mt: 1 }}>
+                                {task.imageUrl && (
+                                  <Box sx={{ mt: 1 }}>
                                     <img
-                                        src={API_URL + task.imageUrl}
-                                        alt="Aperçu tâche"
-                                        style={{
+                                      src={API_URL + task.imageUrl}
+                                      alt="Aperçu tâche"
+                                      style={{
                                         maxWidth: "100%",
                                         maxHeight: 120,
                                         borderRadius: 10,
@@ -287,61 +275,98 @@ const BoardDetailsPage = () => {
                                         marginBottom: 5,
                                         objectFit: "cover",
                                         boxShadow: "0 2px 8px #0001"
-                                        }}
+                                      }}
                                     />
-                                    </Box>
+                                  </Box>
                                 )}
-
-                                {/* Bouton upload image avec icône */}
-                                <label style={{ cursor: "pointer", marginTop: 5, display: "inline-block" }}>
-                                    <input
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    style={{ display: "none" }}
-                                    disabled={!!uploadingTaskId}
-                                    onChange={e => {
-                                        if (e.target.files && e.target.files[0]) {
-                                        handleImageUpload(task.id, e.target.files[0]);
-                                        }
+                                {/* Footer d’actions qui apparait au hover */}
+                                <Box
+                                  className="task-actions"
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "flex-end",
+                                    gap: 1,
+                                    position: "absolute",
+                                    bottom: 8,
+                                    right: 8,
+                                    opacity: 0,
+                                    pointerEvents: "none",
+                                    transition: "opacity 0.2s",
+                                    background: "rgba(30,22,60,0.13)",
+                                    borderRadius: 3,
+                                    p: 0.5,
+                                  }}
+                                >
+                                  <Button
+                                    size="small"
+                                    sx={{
+                                      minWidth: 0, p: 0.8, borderRadius: "50%",
+                                      color: "#e57373", background: "transparent",
+                                      '&:hover': { background: "#e5737333" }
                                     }}
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    title="Supprimer"
+                                  >
+                                    <DeleteIcon sx={{ fontSize: 19 }} />
+                                  </Button>
+                                  <label>
+                                    <input
+                                      type="file"
+                                      accept="image/png,image/jpeg,image/webp"
+                                      style={{ display: "none" }}
+                                      disabled={!!uploadingTaskId}
+                                      onChange={e => {
+                                        if (e.target.files && e.target.files[0]) {
+                                          handleImageUpload(task.id, e.target.files[0]);
+                                        }
+                                      }}
                                     />
                                     <Button
-                                    size="small"
-                                    variant="text"
-                                    sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500, minWidth: 0 }}
-                                    disabled={!!uploadingTaskId}
-                                    component="span"
+                                      size="small"
+                                      sx={{
+                                        minWidth: 0, p: 0.8, borderRadius: "50%",
+                                        color: "#b983fe", background: "transparent",
+                                        '&:hover': { background: "#b983fe33" }
+                                      }}
+                                      component="span"
+                                      disabled={!!uploadingTaskId}
+                                      title="Ajouter une image"
                                     >
-                                    {uploadingTaskId === task.id
-                                        ? "Envoi..."
-                                        : <PhotoCameraIcon sx={{ fontSize: 21, color: "#b983fe" }} />}
+                                      {uploadingTaskId === task.id
+                                        ? <CircularProgress size={14} />
+                                        : <PhotoCameraIcon sx={{ fontSize: 19 }} />}
                                     </Button>
-                                </label>
-                                </Paper>
+                                  </label>
+                                </Box>
+                              </Paper>
                             )}
-                            </Draggable>
+                          </Draggable>
                         ))
-                        ) : (
+                      ) : (
                         <Typography color="#aaa" fontSize={15}>Aucune tâche</Typography>
-                        )}
-                        {provided.placeholder}
+                      )}
+                      {provided.placeholder}
                     </Box>
-                    )}
+                  )}
                 </Droppable>
                 <Button
-                    variant="text"
-                    size="small"
-                    sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500, mt: 1 }}
-                    onClick={() => setTaskDialog({ open: true, colId: col.id })}
+                  variant="text"
+                  size="small"
+                  sx={{
+                    color: "#b983fe", borderRadius: 6, fontWeight: 500, mt: 1,
+                    background: "rgba(185,131,254,0.09)",
+                    '&:hover': { background: "rgba(185,131,254,0.18)" }
+                  }}
+                  onClick={() => setTaskDialog({ open: true, colId: col.id })}
                 >
-                    + Ajouter tâche
+                  + Ajouter tâche
                 </Button>
-                </Paper>
+              </Paper>
+              {/* ===== FIN COLONNE AMELIOREE ===== */}
             </Grid>
-            ))}
+          ))}
         </Grid>
-    </DragDropContext>
-
+      </DragDropContext>
 
       {/* Dialog nouvelle colonne */}
       <Dialog open={columnDialog} onClose={() => setColumnDialog(false)}>
