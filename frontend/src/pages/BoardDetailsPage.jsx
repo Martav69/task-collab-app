@@ -1,20 +1,25 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box, Typography, CircularProgress, Button, Paper, Grid, TextField, Dialog, DialogActions, DialogContent
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { getToken } from "../services/auth";
-import { AuthContext } from "../context/AuthContext";
+
 import { uploadTaskImage } from "../services/taskImage";
+import { deleteTask } from "../services/task";
+import { deleteListColumn } from "../services/listColumn";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const BoardDetailsPage = () => {
   const { id } = useParams(); // L’id du board dans l’URL
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+
   
 
   // State
@@ -115,6 +120,72 @@ const BoardDetailsPage = () => {
     setTaskDialog({ open: false, colId: null });
     setRefresh(r => !r);
   };
+  // Delete task 
+  const handleDeleteTask = async (taskId) => {
+        if (!window.confirm("Supprimer cette tâche ?")) return;
+        try {
+            await deleteTask(taskId);
+            setRefresh(r => !r); // recharge les tâches
+        } catch {
+            alert("Erreur lors de la suppression.");
+        }
+    };
+
+    // delete colonne
+        const handleDeleteColumn = async (colId) => {
+    if (!window.confirm("Supprimer cette colonne et toutes ses tâches ?")) return;
+    try {
+        await deleteListColumn(colId);
+        setRefresh(r => !r); // recharge les colonnes/tâches
+    } catch {
+        alert("Erreur lors de la suppression de la colonne.");
+    }
+    };
+
+    // Drag & drop 
+    const handleDragEnd = async (result) => {
+        const { destination, source, draggableId } = result;
+
+        // Si l’utilisateur drop hors zone ou au même endroit, rien à faire
+        if (!destination ||
+            (destination.droppableId === source.droppableId &&
+            destination.index === source.index)) {
+            return;
+        }
+
+        // Trouve la colonne source et destination
+        const sourceColIdx = columns.findIndex(c => c.id.toString() === source.droppableId);
+        const destColIdx = columns.findIndex(c => c.id.toString() === destination.droppableId);
+
+        if (sourceColIdx === -1 || destColIdx === -1) return;
+
+        // Copie les colonnes (immutabilité)
+        const newColumns = [...columns];
+        const [movedTask] = newColumns[sourceColIdx].tasks.splice(source.index, 1);
+        newColumns[destColIdx].tasks.splice(destination.index, 0, movedTask);
+
+        // Met à jour visuellement
+        setColumns(newColumns);
+
+        // MAJ back : PATCH ou PUT la task avec son nouveau listColumnId
+        try {
+            await fetch(`${API_URL}/api/tasks/${movedTask.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + getToken(),
+            },
+            body: JSON.stringify({
+                ...movedTask,
+                listColumn: { id: columns[destColIdx].id }
+            }),
+            });
+        } catch {
+            // (optionnel: tu peux rollback si erreur)
+            alert("Erreur lors du déplacement !");
+        }
+        };
+
 
   if (loading) return (
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #1f2235 0%, #2a2546 100%)" }}>
@@ -146,95 +217,131 @@ const BoardDetailsPage = () => {
         Nouvelle colonne
       </Button>
 
-      <Grid container spacing={2} sx={{ flexWrap: "nowrap", overflowX: "auto", pb: 6 }}>
-        {columns.map(col => (
-          <Grid item key={col.id} sx={{ minWidth: 300, maxWidth: 320 }}>
-            <Paper sx={{
-              background: "#23233a",
-              borderRadius: 5,
-              p: 2,
-              minHeight: 420,
-              boxShadow: "0 2px 16px #b983fe22",
-              display: "flex",
-              flexDirection: "column"
-            }}>
-              <Typography variant="h6" fontWeight={700} color="#b983fe" gutterBottom>{col.name}</Typography>
-              <Box sx={{ flex: 1 }}>
-                {col.tasks && col.tasks.length > 0 ? (
-                  col.tasks.map(task => (
-                    <Paper key={task.id} sx={{
-                        p: 1.2, mb: 1.4, borderRadius: 3, background: "#342b54", color: "#fff",
-                        boxShadow: "0 1px 6px #b983fe14"
-                    }}>
-                        <Typography fontWeight={600}>{task.title}</Typography>
-                        {task.description && (
-                        <Typography fontSize={14} color="#aaa">{task.description}</Typography>
-                        )}
+    <DragDropContext onDragEnd={handleDragEnd}>
+        <Grid container spacing={2} sx={{ flexWrap: "nowrap", overflowX: "auto", pb: 6 }}>
+            {columns.map((col, colIdx) => (
+            <Grid item key={col.id} sx={{ minWidth: 300, maxWidth: 320 }}>
+                <Paper sx={{
+                background: "#23233a",
+                borderRadius: 5,
+                p: 2,
+                minHeight: 420,
+                boxShadow: "0 2px 16px #b983fe22",
+                display: "flex",
+                flexDirection: "column"
+                }}>
+                <Typography variant="h6" fontWeight={700} color="#b983fe" gutterBottom>
+                    {col.name}
+                    <DeleteIcon
+                    sx={{ ml: 1, cursor: "pointer", fontSize: 20, color: "#e57373" }}
+                    onClick={() => handleDeleteColumn(col.id)}
+                    titleAccess="Supprimer la colonne"
+                    />
+                </Typography>
 
-                        {/* Affiche l’image si présente */}
-                        {task.imageUrl && task.imageUrl.length > 0 && (
-                        <Box sx={{ mt: 1 }}>              
-                            <img
-                                src={API_URL + task.imageUrl}
-                                alt="Aperçu tâche"
-                                style={{
-                                maxWidth: "100%",
-                                maxHeight: 120,
-                                borderRadius: 10,
-                                display: "block",
-                                marginBottom: 5,
-                                objectFit: "cover",
-                                boxShadow: "0 2px 8px #0001"
+                <Droppable droppableId={col.id.toString()} type="task">
+                    {(provided) => (
+                    <Box
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        sx={{ flex: 1, minHeight: 40 }}
+                    >
+                        {col.tasks && col.tasks.length > 0 ? (
+                        col.tasks.map((task, taskIdx) => (
+                            <Draggable key={task.id} draggableId={task.id.toString()} index={taskIdx}>
+                            {(provided, snapshot) => (
+                                <Paper
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                sx={{
+                                    p: 1.2, mb: 1.4, borderRadius: 3, background: "#342b54", color: "#fff",
+                                    boxShadow: snapshot.isDragging
+                                    ? "0 6px 24px #b983fe77"
+                                    : "0 1px 6px #b983fe14",
+                                    opacity: snapshot.isDragging ? 0.92 : 1,
+                                    transition: "box-shadow .2s"
                                 }}
-                            />
-                            
-                        </Box>
+                                >
+                                <Typography fontWeight={600}>{task.title}</Typography>
+                                {task.description && (
+                                    <Typography fontSize={14} color="#aaa">{task.description}</Typography>
+                                )}
+                                <Typography fontWeight={600} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                    <DeleteIcon
+                                    sx={{ ml: 1, cursor: "pointer", fontSize: 21, color: "#e57373" }}
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    />
+                                </Typography>
+                                {/* Affiche l’image si présente */}
+                                {task.imageUrl && task.imageUrl.length > 0 && (
+                                    <Box sx={{ mt: 1 }}>
+                                    <img
+                                        src={API_URL + task.imageUrl}
+                                        alt="Aperçu tâche"
+                                        style={{
+                                        maxWidth: "100%",
+                                        maxHeight: 120,
+                                        borderRadius: 10,
+                                        display: "block",
+                                        marginBottom: 5,
+                                        objectFit: "cover",
+                                        boxShadow: "0 2px 8px #0001"
+                                        }}
+                                    />
+                                    </Box>
+                                )}
+
+                                {/* Bouton upload image avec icône */}
+                                <label style={{ cursor: "pointer", marginTop: 5, display: "inline-block" }}>
+                                    <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    style={{ display: "none" }}
+                                    disabled={!!uploadingTaskId}
+                                    onChange={e => {
+                                        if (e.target.files && e.target.files[0]) {
+                                        handleImageUpload(task.id, e.target.files[0]);
+                                        }
+                                    }}
+                                    />
+                                    <Button
+                                    size="small"
+                                    variant="text"
+                                    sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500, minWidth: 0 }}
+                                    disabled={!!uploadingTaskId}
+                                    component="span"
+                                    >
+                                    {uploadingTaskId === task.id
+                                        ? "Envoi..."
+                                        : <PhotoCameraIcon sx={{ fontSize: 21, color: "#b983fe" }} />}
+                                    </Button>
+                                </label>
+                                </Paper>
+                            )}
+                            </Draggable>
+                        ))
+                        ) : (
+                        <Typography color="#aaa" fontSize={15}>Aucune tâche</Typography>
                         )}
+                        {provided.placeholder}
+                    </Box>
+                    )}
+                </Droppable>
+                <Button
+                    variant="text"
+                    size="small"
+                    sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500, mt: 1 }}
+                    onClick={() => setTaskDialog({ open: true, colId: col.id })}
+                >
+                    + Ajouter tâche
+                </Button>
+                </Paper>
+            </Grid>
+            ))}
+        </Grid>
+    </DragDropContext>
 
-                        {/* Bouton upload image */}
-                        <label style={{ cursor: "pointer", marginTop: 5, display: "inline-block" }}>
-                        <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp"
-                            style={{ display: "none" }}
-                            disabled={!!uploadingTaskId}
-                            onChange={e => {
-                            if (e.target.files && e.target.files[0]) {
-                                handleImageUpload(task.id, e.target.files[0]);
-                            }
-                            }}
-                        />
-                        <Button
-                            size="small"
-                            variant="text"
-                            sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500, minWidth: 0 }}
-                            disabled={!!uploadingTaskId}
-                            component="span"
-                            >
-                            {uploadingTaskId === task.id
-                                ? "Envoi..."
-                                : <PhotoCameraIcon sx={{ fontSize: 21, color: "#b983fe" }} />}
-                        </Button>
-                        </label>
-                    </Paper>
-                    ))
-
-                ) : (
-                  <Typography color="#aaa" fontSize={15}>Aucune tâche</Typography>
-                )}
-              </Box>
-              <Button
-                variant="text"
-                size="small"
-                sx={{ color: "#b983fe", borderRadius: 6, fontWeight: 500 }}
-                onClick={() => setTaskDialog({ open: true, colId: col.id })}
-              >
-                + Ajouter tâche
-              </Button>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
 
       {/* Dialog nouvelle colonne */}
       <Dialog open={columnDialog} onClose={() => setColumnDialog(false)}>

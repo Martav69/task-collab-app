@@ -5,9 +5,13 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import GroupIcon from "@mui/icons-material/Group";
+import DeleteIcon from "@mui/icons-material/Delete";
+
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { getToken, isAuthenticated } from "../services/auth";
 import { AuthContext } from "../context/AuthContext";
+
+import { deleteBoard } from "../services/board";
 
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
@@ -80,6 +84,17 @@ const BoardsPage = () => {
       setCreateError("Impossible de créer le tableau.");
     }
     setCreating(false);
+  };
+    // delete board
+    const handleDeleteBoard = async (boardId) => {
+    if (!window.confirm("Supprimer ce tableau ? Cette action est irréversible !")) return;
+    try {
+      await deleteBoard(boardId);
+      // Actualise la liste locale
+      setBoards(boards => boards.filter(b => b.id !== boardId));
+    } catch {
+      alert("Erreur lors de la suppression du tableau.");
+    }
   };
 
   return (
@@ -186,6 +201,23 @@ const BoardsPage = () => {
                   </Typography>
                   <Typography color="#a9a9bc" fontSize={14}>
                     Créé par <b>{board.ownerUsername || board.ownerId || "?"}</b>
+                    <DeleteIcon
+                      sx={{
+                        position: "absolute",
+                        top: 6,
+                        right: 8,
+                        color: "#e57373",
+                        fontSize: 24,
+                        cursor: "pointer",
+                        transition: "color .15s",
+                        "&:hover": { color: "#b71c1c" }
+                      }}
+                      titleAccess="Supprimer le tableau"
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleDeleteBoard(board.id);
+                      }}
+                    />
                   </Typography>
                 </CardContent>
               </Card>
